@@ -1,0 +1,12 @@
+
+
+img link : https://store.storeimages.cdn-apple.com/1/as-images.apple.com/is/iphone-15-model0l
+product link : https://www.apple.com/shop/buy-iphone/iphone-15
+iphone title : iphone 15
+price : 799
+rande : 599
+brief desc: good phone use it
+full descritption : buy it now 
+userid :ip15
+username : ip15user
+password:; 1p15user!!
