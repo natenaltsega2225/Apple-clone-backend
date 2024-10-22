@@ -1,30 +1,18 @@
-const mysql = require('mysql2');
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const TestRouter = require('./routes/test.routes')
+const TestRouter = require('./routes/test.routes');
+const dbConnection = require('./dbConfig'); // Import the DB connection
 const app = express();
+
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-app.use(TestRouter)
-
-// Database connection
-const mysqlConnection = mysql.createConnection({
-  user: process.env.USER,
-  database:process.env.DATABASE ,
-  host: process.env.HOST,
-  password: process.env.PASSWORD,
-});
-
-mysqlConnection.connect((err) => {
-  if (err) console.error('Database connection error:', err);
-  else console.log('Connected to the database');
-});
+app.use(TestRouter);
 
 // Install: Create the tables necessary
-app.get('/install', (req, res) => {
+app.get('/install', async (req, res) => {
   const message = 'Tables Created';
 
   // SQL to create tables
@@ -59,21 +47,19 @@ app.get('/install', (req, res) => {
     )
   `;
 
-  mysqlConnection.query(createProducts, (err) => {
-    if (err) console.error('Error creating Products table:', err);
-  });
-  mysqlConnection.query(createProductDescription, (err) => {
-    if (err) console.error('Error creating ProductDescription table:', err);
-  });
-  mysqlConnection.query(createProductPrice, (err) => {
-    if (err) console.error('Error creating ProductPrice table:', err);
-  });
-
-  res.send(message);
+  try {
+    await dbConnection.query(createProducts);
+    await dbConnection.query(createProductDescription);
+    await dbConnection.query(createProductPrice);
+    res.send(message);
+  } catch (err) {
+    console.error('Error creating tables:', err);
+    res.status(500).send('Error creating tables');
+  }
 });
 
 // Insert a new product
-app.post('/add-product', (req, res) => {
+app.post('/add-product', async (req, res) => {
   const {
     product_name, product_url, product_brief_description,
     product_description, product_img, product_link,
@@ -85,70 +71,59 @@ app.post('/add-product', (req, res) => {
   }
 
   const insertProduct = 'INSERT INTO Products (product_url, product_name) VALUES (?, ?)';
-  mysqlConnection.query(insertProduct, [product_url, product_name], (err, result) => {
-    if (err) {
-      console.error('Error inserting product:', err);
-      return res.status(500).send('Error inserting product.');
-    }
-
+  try {
+    const [result] = await dbConnection.query(insertProduct, [product_url, product_name]);
     const productId = result.insertId; // Get the inserted product ID
 
     const insertProductDescription = `
       INSERT INTO ProductDescription (product_id, product_brief_description, product_description, product_img, product_link)
       VALUES (?, ?, ?, ?, ?)
     `;
-    mysqlConnection.query(insertProductDescription, [productId, product_brief_description, product_description, product_img, product_link], (err) => {
-      if (err) {
-        console.error('Error inserting product description:', err);
-        return res.status(500).send('Error inserting product description.');
-      }
+    await dbConnection.query(insertProductDescription, [productId, product_brief_description, product_description, product_img, product_link]);
 
-      const insertProductPrice = `
-        INSERT INTO ProductPrice (product_id, starting_price, price_range)
-        VALUES (?, ?, ?)
-      `;
-      mysqlConnection.query(insertProductPrice, [productId, starting_price, price_range], (err) => {
-        if (err) {
-          console.error('Error inserting product price:', err);
-          return res.status(500).send('Error inserting product price.');
-        }
+    const insertProductPrice = `
+      INSERT INTO ProductPrice (product_id, starting_price, price_range)
+      VALUES (?, ?, ?)
+    `;
+    await dbConnection.query(insertProductPrice, [productId, starting_price, price_range]);
 
-        res.send('Product added successfully');
-      });
-    });
-  });
+    res.send('Product added successfully');
+  } catch (err) {
+    console.error('Error inserting product:', err);
+    res.status(500).send('Error inserting product.');
+  }
 });
 
 // Get all products
-app.get('/products', (req, res) => {
+app.get('/products', async (req, res) => {
   const query = `
     SELECT * FROM Products
     INNER JOIN ProductDescription ON Products.product_id = ProductDescription.product_id
     INNER JOIN ProductPrice ON Products.product_id = ProductPrice.product_id
   `;
-  mysqlConnection.query(query, (err, rows) => {
-    if (err) {
-      console.error('Error retrieving products:', err);
-      return res.status(500).send('Error retrieving products.');
-    }
+  try {
+    const [rows] = await dbConnection.query(query);
     res.json({ products: rows });
-  });
+  } catch (err) {
+    console.error('Error retrieving products:', err);
+    res.status(500).send('Error retrieving products.');
+  }
 });
 
 // Add route for /iphones to fetch all products
-app.get('/iphones', (req, res) => {
+app.get('/iphones', async (req, res) => {
   const query = `
     SELECT * FROM Products
     INNER JOIN ProductDescription ON Products.product_id = ProductDescription.product_id
     INNER JOIN ProductPrice ON Products.product_id = ProductPrice.product_id
   `;
-  mysqlConnection.query(query, (err, rows) => {
-    if (err) {
-      console.error('Error retrieving products:', err);
-      return res.status(500).send('Error retrieving products.');
-    }
+  try {
+    const [rows] = await dbConnection.query(query);
     res.json({ products: rows });
-  });
+  } catch (err) {
+    console.error('Error retrieving products:', err);
+    res.status(500).send('Error retrieving products.');
+  }
 });
 
 app.listen(3001, (err) => {
@@ -158,5 +133,3 @@ app.listen(3001, (err) => {
     console.log('Server is listening on port 3001');
   }
 });
-
-
