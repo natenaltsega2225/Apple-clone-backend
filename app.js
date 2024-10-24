@@ -3,12 +3,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const TestRouter = require('./routes/test.routes');
 const dbConnection = require('./dbConfig'); // Import the DB connection
-require('dotenv').config(); // Load environment variables from .env file for local development
+require('dotenv').config(); // Load environment variables
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://your-frontend-on-render.com' // Replace with your actual frontend URL
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
@@ -130,8 +132,8 @@ app.get('/iphones', async (req, res) => {
   }
 });
 
-// Start the server, using dynamic port from environment or fallback to 3001
-const PORT = process.env.PORT || 3001;
+// Start the server, using dynamic port from environment
+const PORT = process.env.PORT || 3001; // Keep this for potential local testing
 app.listen(PORT, (err) => {
   if (err) {
     console.error('Error starting server:', err);
