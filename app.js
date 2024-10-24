@@ -3,12 +3,16 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const TestRouter = require('./routes/test.routes');
 const dbConnection = require('./dbConfig'); // Import the DB connection
+require('dotenv').config(); // Load environment variables from .env file for local development
+
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+// Routes
 app.use(TestRouter);
 
 // Install: Create the tables necessary
@@ -126,10 +130,12 @@ app.get('/iphones', async (req, res) => {
   }
 });
 
-app.listen(3001, (err) => {
+// Start the server, using dynamic port from environment or fallback to 3001
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, (err) => {
   if (err) {
     console.error('Error starting server:', err);
   } else {
-    console.log('Server is listening on port 3001');
+    console.log(`Server is listening on port ${PORT}`);
   }
 });
